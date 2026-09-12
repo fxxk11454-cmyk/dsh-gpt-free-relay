@@ -25,7 +25,11 @@
     "lib",
     "cordis.patch.yml",
     "scripts",
-    "README.md"
+    "docs",
+    "AGENTS.md",
+    "README.md",
+    "setup.sh",
+    "setup.bat"
   ],
   "engines": {
     "node": ">=20"
