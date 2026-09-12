@@ -24,7 +24,7 @@ DSH 插件。把机场订阅解析出来，在本地起一个串行反向代理�
 1. 自备 ChatGPT 账号。插件不含账号，默认那条链路完全依赖你在浏览器里登录的那个号。
 2. 网络能到 chatgpt.com。要么你自己能直连，要么有可用的代理或机场订阅。插件不提供线路。
 3. 自备 Xray 核心。走机场线路时需要，仓库不分发，见[手动安装](#手动安装)。
-4. 装浏览器环境，约 660MB：`bash scripts/setup-browser.sh`。
+4. 装浏览器环境，约 660MB：`bash setup.sh`（Unix）或 `setup.bat`（Windows）。
 5. 能跑带界面的 Linux。依赖 Xvfb、Chromium、x11vnc。纯容器或无 X 环境得自己想办法。
 6. 接受它随时失效。靠的是 ChatGPT 网页版，上游一改版就坏。
 7. 只限个人自用。别拿去多账号分发、转卖，或对外提供接口。
@@ -95,37 +95,40 @@ Xray 那边本来就是全局的：生成的配置里 `routing.rules` 是空的�
 
 ## 一键部署
 
-Windows 和 Linux 共用同一套逻辑，核心是 `scripts/deploy.mjs`，两个入口脚本只负责检测和转调。
+Windows 与 Unix 是**两套分开的脚本**，各自独立，互不牵连。
 
-| 系统 | 入口 |
-|---|---|
-| Linux / macOS / Android 容器 | `bash scripts/deploy.sh` |
-| Windows | `scripts\deploy.bat` |
+| 系统 | 入口 | 实现 | 说明 |
+|---|---|---|---|
+| Linux / macOS / Android 容器 | `bash setup.sh` | `scripts/unix/` | [docs/unix.md](docs/unix.md) |
+| Windows | `setup.bat` | `scripts/windows/` | [docs/windows.md](docs/windows.md) |
 
-Windows 的远程画面是另一套实现。那上面没有 Xvfb 和 x11vnc，VNC 起不来，所以改用 CDP 截图加输入注入，走 Playwright 原生能力：画面是一张定时刷新的图，点它会换算成视口坐标发回去点击，另有输入框敲字。Linux 和 macOS 不受影响，仍然走 Xvfb + x11vnc + noVNC。两套按 `status.platform` 分流，互不干扰。
-
-脚本依次做四件事：检测环境（系统、Node 版本、profile、已装内容），拉取 Xray 核心（按平台自动选包），安装浏览器环境，注册进 DSH profile。
+两边只共享 `scripts/_shared/`（注册逻辑与无平台判断的公共能力）。
+拿着 Unix 脚本去 Windows 跑（或反过来）会**明确报错并告诉你去用哪个**，不会静默跑歪。
 
 ```bash
-# Linux 完整部署
-bash scripts/deploy.sh
+# Unix 完整部署
+bash setup.sh
 
 # 不装浏览器环境（只用机场线路，省 660MB）
-bash scripts/deploy.sh --no-browser
+bash setup.sh --no-browser
 
 # 指定 profile
-bash scripts/deploy.sh --profile web
+bash setup.sh --profile web
 
 # 只看会做什么，不改动任何东西
-bash scripts/deploy.sh --dry-run
+bash setup.sh --dry-run
 ```
 
 ```bat
 rem Windows
-scripts\deploy.bat
-scripts\deploy.bat --no-core
-scripts\deploy.bat --dry-run
+setup.bat
+setup.bat --no-browser
+setup.bat --dry-run
 ```
+
+Windows 的远程画面是另一套实现。那上面没有 Xvfb 和 x11vnc，VNC 起不来，所以改用 CDP 截图加输入注入，走 Playwright 原生能力：画面是一张定时刷新的图，点它会换算成视口坐标发回去点击，另有输入框敲字。Linux 和 macOS 不受影响，仍然走 Xvfb + x11vnc + noVNC。两套按 `status.platform` 分流，互不干扰。
+
+脚本依次做四件事：检测环境（系统、Node 版本、profile、已装内容），拉取 Xray 核心（按平台自动选包），安装浏览器环境，注册进 DSH profile。
 
 部署完重启 DSH，打开「通用设置 → 插件 → 插件配置」，应该能看到「机场中转」卡片。
 
@@ -137,10 +140,13 @@ scripts\deploy.bat --dry-run
 
 ```bash
 # 1) 拉取核心（不随仓库分发）
-bash scripts/fetch-core.sh
+bash scripts/unix/fetch-core.sh          # Unix
+# Windows 用 scripts\windows\deploy.mjs，它会自动拉 Windows 构建
 
 # 2) 装进 DSH 的某个 profile
-dsh plugin --profile web add /path/to/dsh-plugin
+node scripts/_shared/register-plugin.mjs \
+  "${DSH_HOME:-$HOME/.dsh}/profiles/web" \
+  "$(pwd)"
 ```
 
 ## 使用
@@ -269,23 +275,29 @@ DSH ──► 127.0.0.1:2082（串行，并发 1）──► Xray ──► 机�
 ## 验证
 
 ```bash
-# 订阅解析：Clash 区块 / Clash 流式 / base64 / 明文 URI
+# 核心逻辑回归 —— 35 项
+node scripts/test-core.mjs
+```
+
+覆盖五块：工具调用剥离（含嵌套）、串行闸门、响应过滤、订阅解析、
+Xray 配置生成（本机有核心时会真的跑一次 `xray -test`）。
+
+```bash
+# 订阅解析单独跑
 node --input-type=module -e "import('./lib/subscription.js').then(m => console.log(m.parseSubscription(process.argv[1])))" "proxies:
   - {name: n, type: vmess, server: 1.2.3.4, port: 443, uuid: 11111111-2222-3333-4444-555555555555}"
-
-# 配置生成 → 用真实 Xray 校验
-#   xray run -c <生成的 config.json> -test   →  Configuration OK.
 ```
 
 实测结果：
 
 | 项 | 结果 |
 |---|---|
-| Clash 区块 + 流式解析 | 2/2 节点 |
-| base64 → URI | 2/2 节点 |
+| 核心逻辑回归 | 35/35 通过 |
+| Clash 区块 + 缩进 + 流式解析 | 通过 |
+| base64 → URI / vmess JSON | 通过 |
 | 配置生成 → `xray -test` | `Configuration OK.` |
-| 串行闸门峰值并发 | 1（3 个任务总耗时 = 各自之和） |
-| 工具字段剥离 | 请求仅剩 `model, messages`；响应 delta 仅剩 `content` |
+| 串行闸门峰值并发 | 1 |
+| 嵌套工具字段剥离 | 请求里 `tool_calls` / `role:tool` / `tool_result` 全部清除 |
 
 客户端卡片另有一份渲染回归，跑 `node scripts/test-client-render.mjs`，覆盖折叠态与 5 种展开场景。写它是因为卡片是展开时才渲染主体的，里面一旦有未定义变量，React 会把整张卡卸载，界面上还不报错，只看到卡片消失。
 

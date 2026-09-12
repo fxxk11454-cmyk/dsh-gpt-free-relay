@@ -1,11 +1,15 @@
 /**
  * 把本插件注册进一个 DSH profile。
  *
- * deploy.sh 与 deploy.bat 都调用它 —— 免得同一段 JSON 改两遍还改歪。
- * 只做两件事：往 profile 的 package.json 里写 link 依赖、把包名加进 bundle 列表。
+ * Unix 与 Windows 两套部署脚本**都调用它** —— 免得同一段 JSON 改两遍还改歪。
+ * 它本身不含任何平台判断（那是调用方的事），只做两件事：
+ * 往 profile 的 package.json 里写 link 依赖、把包名加进 bundle 列表。
+ *
+ * 位置：scripts/_shared/register-plugin.mjs
+ *   调用方：scripts/unix/deploy.mjs 与 scripts/windows/deploy.mjs
  *
  * 用法：
- *   node scripts/register-plugin.mjs <profile目录> <插件目录>
+ *   node scripts/_shared/register-plugin.mjs <profile目录> <插件目录>
  */
 import { readFileSync, writeFileSync, existsSync } from 'node:fs'
 import { join, resolve } from 'node:path'
@@ -14,7 +18,7 @@ const NAME = 'dsh-gpt-free-relay'
 
 const [profileDirArg, pluginDirArg] = process.argv.slice(2)
 if (!profileDirArg || !pluginDirArg) {
-  console.error('用法: node scripts/register-plugin.mjs <profile目录> <插件目录>')
+  console.error('用法: node scripts/_shared/register-plugin.mjs <profile目录> <插件目录>')
   process.exit(1)
 }
 

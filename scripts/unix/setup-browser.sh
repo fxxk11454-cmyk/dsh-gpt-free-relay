@@ -1,17 +1,23 @@
 #!/usr/bin/env bash
-# 安装「有头浏览器」模式需要的环境。
+# 安装「有头浏览器」模式需要的环境。**Linux 专用。**
+#
+# macOS / Windows 不需要这个脚本 —— 它们原生就有有头浏览器，
+# 只要 npx playwright install chromium 即可（Windows 见 scripts/windows/deploy.mjs）。
 #
 # 装完后的布局（全部在插件目录之外，不进仓库）：
-#   /root/.dsh-browser/xvfb        —— Xvfb（虚拟屏）
-#   /root/.dsh-browser/x11vnc      —— 系统包 x11vnc
-#   /root/.dsh-browser/node_modules —— playwright-core / ws / @novnc/novnc
-#   /root/.dsh-browser/browsers     —— Chromium 本体（约 660MB）
-#   /root/.dsh-browser/profile      —— 浏览器用户目录（登录态存在这里）
+#   ~/.dsh-browser/xvfb        —— Xvfb（虚拟屏）
+#   ~/.dsh-browser/x11vnc      —— 系统包 x11vnc
+#   ~/.dsh-browser/node_modules —— playwright-core / ws / @novnc/novnc
+#   ~/.dsh-browser/browsers     —— Chromium 本体（约 660MB）
+#   ~/.dsh-browser/profile      —— 浏览器用户目录（登录态存在这里）
 #
-# 用法：bash scripts/setup-browser.sh
+# 用法：bash scripts/unix/setup-browser.sh
+# 想换安装位置就设 BROWSER_HOME（运行时也要设同样的值）。
 set -euo pipefail
 
-HOME_DIR=/root/.dsh-browser
+# 默认 /root/.dsh-browser（Android 容器里的惯例）。允许覆盖是为了
+# 非 root 环境：以前这里写死 /root，非 root 用户一跑就 permission denied。
+HOME_DIR="${BROWSER_HOME:-${HOME:-/root}/.dsh-browser}"
 mkdir -p "$HOME_DIR"
 
 echo "==> 1/5 修正 apt 架构"
