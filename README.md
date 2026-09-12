@@ -20,19 +20,44 @@
 
 ## 它做什么
 
-把 Android 版的「订阅解析 + 本地代理」搬进 DSH，并额外加了一层**串行反向代理**：
+有**两条**可选的出网链路，默认走第二条：
+
+### 链路一：机场线路（原来的做法）
 
 ```
 DSH 的模型请求 ──► 本地串行反向代理(127.0.0.1:2082) ──► Xray(HTTP 入站 2081)
-                                                          ──► 你的机场线路 ──► 上游
+                                                          ──► 你的机场线路 ──► 上游 API
 ```
+
+### 链路二：网页端会话（默认，不需要 API Key）
+
+**登录交给卡片里那个内嵌的 ChatGPT 页面，请求全部本地处理。**
+
+```
+① 登录（一次就够）
+   用户在卡片「网页端」里正常登录 ChatGPT
+        └─► Set-Cookie 经过本地代理 ──► host 端 cookie jar ──► /api/auth/session ──► accessToken
+
+② 之后每次对话
+   DSH 请求 ──► 串行闸门(并发 1) ──► Sentinel(PoW + turnstile，纯 Node)
+                                       ──► /backend-api/conversation ──► SSE ──► OpenAI chunk ──► DSH
+```
+
+这条链路的好处：
+
+- **不花 API 的钱**，走的是你网页端的登录态
+- **型号不用维护** —— 默认用网页端的 `auto`，ChatGPT 自己路由，上游换型号不用改配置
+
+PoW 和 turnstile 都是**纯 Node 实现**（vendor 自 [pi-gpt](https://www.npmjs.com/package/pi-gpt)，MIT，其源头是 [chat2api](https://github.com/lanqian528/chat2api)，MIT），所以**模型请求阶段不需要浏览器参与**——浏览器只在登录那一次用得上。
+
+> ⚠️ 这是**非官方接口**：用的是 ChatGPT 网页版自己的后端，随时可能被上游改动或风控。仅建议自用。
 
 ### 两条硬约束
 
 | 约束 | 实现 |
 |---|---|
-| **强制并发 1** | 所有请求进同一条串行队列。**必须等上一轮回答彻底写回客户端**，下一个才放行 —— 不是"排队发出"，而是真正串行。 |
-| **不允许工具调用** | 请求体的 `tools` / `tool_choice` / `functions` / `function_call` / `parallel_tool_calls` 一律剥掉；响应流里出现的 `tool_calls` 也一并过滤。模型看不到工具，也不会试图调用。 |
+| **强制并发 1** | 所有请求进同一条串行队列。**必须等上一轮回答彻底写回客户端**，下一个才放行 —— 不是"排队发出"，而是真正串行。两条链路都过这道闸门。 |
+| **不允许工具调用** | 链路一：请求体的 `tools` / `tool_choice` / `functions` / `function_call` / `parallel_tool_calls` 一律剥掉，响应流里的 `tool_calls` 也过滤。链路二：输出是本插件自己拼的 OpenAI chunk，**结构上就不含 `tool_calls`**，不靠过滤。 |
 
 两者都有单测覆盖（见下方「验证」）。
 
@@ -95,6 +120,16 @@ curl -s 127.0.0.1:2083/airport
 
 # 清除保留的数据
 curl -s -X POST 127.0.0.1:2083/clear
+
+# 网页端登录态（拿 accessToken）
+curl -s 127.0.0.1:2083/chatgpt
+curl -s -X POST 127.0.0.1:2083/chatgpt/refresh -d '{"force":true}'
+
+# 本地处理开关（关掉就回到走机场线路的老路径）
+curl -s -X POST 127.0.0.1:2083/chatgpt/toggle -d '{"useWebSession":false}'
+
+# 拿一句话试跑网页会话，直接看通不通
+curl -s -X POST 127.0.0.1:2083/chatgpt/test -d '{"prompt":"只回复两个字：正常"}'
 
 # 查看实际生成的 Xray 配置与错误日志
 curl -s 127.0.0.1:2083/config
