@@ -1,0 +1,36 @@
+{
+  "name": "dsh-gpt-free-relay",
+  "version": "1.0.0-beta",
+  "description": "DSH 插件：机场订阅 → 本地串行代理 → 让 DSH 走你的线路访问 GPT。强制并发 1，不透传工具调用。",
+  "type": "module",
+  "main": "lib/index.js",
+  "license": "MIT",
+  "exports": {
+    ".": {
+      "default": "./lib/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "cordis.patch.yml",
+    "scripts",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "relay",
+    "proxy",
+    "subscription"
+  ]
+}

@@ -1,0 +1,12 @@
+# dsh-gpt-free-relay 的 profile 层。
+#
+# `dsh plugin --profile <name> add <本包>` 安装后，因为 package.json 声明了
+# dsh.bundle.patch，这一行会被自动追加进 profile 的 bundle 列表并加载。
+#
+# 配置可以直接写在下方的 config 里，也可以用环境变量：
+#   GPT_FREE_RELAY_SUBSCRIPTION   机场订阅地址
+#   GPT_FREE_RELAY_NODE           首选节点名（可选，缺省用第一个可用节点）
+#   GPT_FREE_RELAY_PORT           本地代理端口（默认 2080）
+- insert:
+    - id: gpt-free-relay
+      name: 'dsh-gpt-free-relay'
