@@ -103,7 +103,53 @@ DSH 请求 ──► 串行闸门(并发 1) ──► 真 Chromium：打字 → 
 
 ---
 
-## 安装
+## 一键部署
+
+跨平台，Windows 与 Linux 共用同一套逻辑（核心是 `scripts/deploy.mjs`，
+两个入口脚本只是检测 + 转调）：
+
+| 系统 | 入口 | 功能 |
+|---|---|---|
+| **Linux / macOS / Android 容器** | `bash scripts/deploy.sh` | **完整** —— 机场线路 + 浏览器作答 |
+| **Windows** | `scripts\deploy.bat` | **降级** —— 只有机场线路 |
+
+> Windows 上没有 Xvfb / x11vnc，做不到「有头浏览器 + 远程画面」，
+> 所以那条链路在 Windows 上不可用。这是平台限制，不是脚本偷懒 ——
+> 核心脚本会检测出来并明确告诉你。
+
+脚本会依次：**检测环境**（系统 / Node 版本 / profile / 已装内容）→ 拉取 Xray 核心
+（按平台自动选包）→ 安装浏览器环境 → 注册进 DSH profile。
+
+```bash
+# Linux 完整部署
+bash scripts/deploy.sh
+
+# 不装浏览器环境（只用机场线路，省 660MB）
+bash scripts/deploy.sh --no-browser
+
+# 指定 profile
+bash scripts/deploy.sh --profile web
+
+# 只看会做什么，不改动任何东西
+bash scripts/deploy.sh --dry-run
+```
+
+```bat
+rem Windows
+scripts\deploy.bat
+scripts\deploy.bat --no-core
+scripts\deploy.bat --dry-run
+```
+
+部署完**重启 DSH**，打开「通用设置 → 插件 → 插件配置」应能看到「机场中转」卡片。
+
+---
+
+## 手动安装
+
+不想用脚本的话，也可以手动做：
+
+
 
 ```bash
 # 1) 拉取核心（不随仓库分发）
