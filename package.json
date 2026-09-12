@@ -9,9 +9,7 @@
       "default": "./lib/index.js"
     },
     "./package.json": "./package.json",
-    "./client": {
-      "default": "./lib/client.js"
-    }
+    "./client": "./lib/client.js"
   },
   "license": "MIT",
   "author": "dsh-gpt-free-relay contributors",
