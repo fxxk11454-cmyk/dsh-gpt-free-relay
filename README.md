@@ -108,25 +108,36 @@ curl -s 127.0.0.1:2083/config
 llm-pi-ai:
   providers:
     gpt-free-relay:
-      displayName: GPT Free 中转
+      displayName: Free Chat
       api: openai-completions
       baseURL: http://127.0.0.1:2082/v1
       apiKeyEnv: GPT_FREE_RELAY_API_KEY   # 凭据名，值由插件写进凭据库
       models:
-        - id: gpt-4o-mini
-        - id: gpt-4o
-        - id: gpt-4.1-mini
-        - id: deepseek-chat
+        - id: free-chat                   # 只暴露这一个统一入口
 ```
+
+#### 为什么只有一个 `free-chat`
+
+网页版的型号一直在变（今天叫 gpt-4o，明天可能就换别的）。把 `gpt-4o` / `gpt-4.1-mini` 这种列表写进配置，等于给自己埋维护债 —— 上游一更新，列表就是过期信息。
+
+所以这里**收敛成一个稳定的别名** `free-chat`，真型号只在整个链路里出现一次：
+
+```
+DSH 发 model=free-chat ──► 中转改写 ──► 上游收到 model=gpt-4o-mini
+```
+
+要换上游型号，改一处就行（插件配置里的 `upstreamModel`，默认 `gpt-4o-mini`）。中转只替换**完全相等**的别名：客户端如果直接点名真实型号（比如 `gpt-4o`），会原样透传，不会被这层吃掉。
+
+卡片的状态行会实时显示当前映射，比如 `模型 free-chat → gpt-4o-mini`。
 
 > **注意两件事**，都是踩过的坑：
 > 1. provider profile **没有 `apiKey` 字段**，只有 `apiKeyEnv`（一个**凭据引用名**）。写明文 `apiKey` 属于未知键，整条 profile 落不了盘 —— 表现就是「模型区里什么都没有」。
 > 2. `apiKeyEnv` 指向的凭据必须真实存在且**非空**（空值会被当成"未配置"）。插件会自动写入这个凭据，值只是占位，真正的上游 Key 由代理链路注入。
 
-想用自己的模型列表：
+需要临时换入口名或一次给多个：
 
 ```bash
-curl -s -X POST 127.0.0.1:2083/publish-provider -d '{"models":["gpt-4o-mini","gpt-4o","gpt-4.1-mini","deepseek-chat"]}'
+curl -s -X POST 127.0.0.1:2083/publish-provider -d '{"models":["free-chat"]}'
 ```
 
 转发时序：
