@@ -52,6 +52,46 @@ PoW 和 turnstile 都是**纯 Node 实现**（vendor 自 [pi-gpt](https://www.np
 
 > ⚠️ 这是**非官方接口**：用的是 ChatGPT 网页版自己的后端，随时可能被上游改动或风控。仅建议自用。
 
+### 链路三：有头浏览器（对付 Cloudflare 的终极手段）
+
+前面两条链路都是 Node 在发请求。实测：**只要用 Node 的 fetch 访问 chatgpt.com，Cloudflare 一律回
+`cf-mitigated: challenge`** —— 补浏览器特征头也没用（试过全套 `sec-fetch-*` / `sec-ch-ua`），因为被判定的是
+**连接本身**，不是那几个头。
+
+所以第三条链路直接用**真 Chromium**：
+
+```
+容器
+ ├─ Xvfb（虚拟屏 :99）
+ ├─ Chromium（headless: false，--proxy-server 指向机场）
+ └─ x11vnc ──► WebSocket 桥 ──► 卡片里的 noVNC
+```
+
+- **有头模式**，不是 headless —— 两者指纹不同，Cloudflare 分得出来
+- **不做本地 MITM**：浏览器直连真域名，TLS/HTTP2 指纹全是真的
+- 卡片里多一个 **「有头浏览器」** 标签页，用 noVNC 把那块虚拟屏投过来，
+  你直接在卡片上操作它登录
+
+实测对比（同一个机场出口、同一时刻）：
+
+| | 结果 |
+|---|---|
+| Node fetch | `403` + `cf-mitigated: challenge` |
+| 真 Chromium（有头） | **`200`，无挑战**，页面完整渲染 |
+
+**先装环境**（约 660MB，装在插件目录外，不进仓库）：
+
+```bash
+bash scripts/setup-browser.sh
+```
+
+> 装脚本里有两处是这个 Android 容器特有的坑，都踩过：
+> - `dpkg` 里登记了外来架构 `amd64`，导致 apt 去 ubuntu-ports 找 `binary-amd64` 全 404
+> - `x11vnc` 默认监听 IPv6 且用 SysV 共享内存，容器里两者都没有 → 启动即退出。
+>   必须加 `-no6 -noshm`
+
+然后卡片里切到 **「有头浏览器」** → **启动并打开 ChatGPT** → 在弹出的画面里正常登录。
+
 ### 两条硬约束
 
 | 约束 | 实现 |
