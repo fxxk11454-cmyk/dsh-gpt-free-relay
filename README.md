@@ -52,17 +52,27 @@ dsh plugin --profile web add /path/to/dsh-plugin
 
 ### A. 图形界面（推荐）
 
-装好后在 DSH 的 **「通用设置 → 插件 → 插件配置」** 里会多出一张可展开的 **「机场中转」** 卡片：
+装好后在 DSH 的 **「通用设置 → 插件 → 插件配置」** 里会多出一张可展开的 **「机场中转」** 卡片。**只有这一张**，两端用卡片顶部的 **模式** 开关切换：
 
-- 填写订阅地址 → **拉取并解析**
-- 选择节点 → **连接** / **断开**
-- 实时显示：核心是否运行、节点数、**并发（恒为 1）**、**工具调用（off）**
+| 模式 | 里面有什么 |
+| --- | --- |
+| **普通端** | 订阅地址 → 拉取并解析；节点下拉 → 连接 / 断开；状态行（核心、节点数、并发 1、工具 off） |
+| **网页端** | 把官网经本机代理渲染进卡片内的 iframe，另有「重新加载」「在新标签打开」 |
+
+#### 机场数据是保留的（含「清除数据」）
+
+订阅地址和节点列表不会因为刷新页面或重启 DSH 就丢：
+
+- 浏览器端存一份镜像（localStorage）
+- host 端存一份落盘文件（插件目录下 `.runtime/airport.json`）
+
+两份都遵守同一条合并规则：**只增不减**。也就是说，某次拉取只拿到 3 个节点、而上次拿到了 30 个时，会**保留更长的那 30 个**，界面上会提示「本次结果更短，已保留原先更长的一份」，避免一次抽风的订阅把你的节点列表冲掉。
+
+要彻底抹掉：卡片里点 **清除数据**（需连点两次确认）。它会断开连接、清空节点、删掉落盘文件并清掉浏览器镜像。
 
 ### B. 命令行 / agent 驱动
 
-插件提供本地管理接口：
-
-### A. 本地管理接口（agent 可直接驱动）
+插件提供本地管理接口，agent 可以直接 curl 驱动：
 
 ```bash
 # 状态
@@ -80,17 +90,43 @@ curl -s -X POST 127.0.0.1:2083/connect -d '{"index":0}'
 # 断开
 curl -s -X POST 127.0.0.1:2083/disconnect
 
+# 当前保留的机场数据（含落盘路径与保存时间）
+curl -s 127.0.0.1:2083/airport
+
+# 清除保留的数据
+curl -s -X POST 127.0.0.1:2083/clear
+
 # 查看实际生成的 Xray 配置与错误日志
 curl -s 127.0.0.1:2083/config
 ```
 
 ### B. 让 DSH 的模型走这条线路
 
-把模型 provider 的 **baseURL 指向本地串行代理**：
+插件启动时会**自动**把一个叫 `gpt-free-relay` 的 provider 写进 `llm-pi-ai`，「模型」区据此显示。指向的 baseURL 是本地串行代理：
 
 ```yaml
-# settings.yaml 示意（按你的 provider 结构填写）
-baseURL: http://127.0.0.1:2082/v1
+llm-pi-ai:
+  providers:
+    gpt-free-relay:
+      displayName: GPT Free 中转
+      api: openai-completions
+      baseURL: http://127.0.0.1:2082/v1
+      apiKeyEnv: GPT_FREE_RELAY_API_KEY   # 凭据名，值由插件写进凭据库
+      models:
+        - id: gpt-4o-mini
+        - id: gpt-4o
+        - id: gpt-4.1-mini
+        - id: deepseek-chat
+```
+
+> **注意两件事**，都是踩过的坑：
+> 1. provider profile **没有 `apiKey` 字段**，只有 `apiKeyEnv`（一个**凭据引用名**）。写明文 `apiKey` 属于未知键，整条 profile 落不了盘 —— 表现就是「模型区里什么都没有」。
+> 2. `apiKeyEnv` 指向的凭据必须真实存在且**非空**（空值会被当成"未配置"）。插件会自动写入这个凭据，值只是占位，真正的上游 Key 由代理链路注入。
+
+想用自己的模型列表：
+
+```bash
+curl -s -X POST 127.0.0.1:2083/publish-provider -d '{"models":["gpt-4o-mini","gpt-4o","gpt-4.1-mini","deepseek-chat"]}'
 ```
 
 转发时序：
