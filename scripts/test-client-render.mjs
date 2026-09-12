@@ -136,6 +136,17 @@ check('展开 · 表单列表', () => {
   Card({ t: (k) => k })
 })
 
+check('展开 · Windows 专用画面（CDP）', () => {
+  // Windows 没有 Xvfb/x11vnc，走的是 CDP 截图那套，不能走进 VNC 分支
+  sim.reset([true, 'vnc', { platform: 'win32', browser: { running: true, url: 'https://chatgpt.com/' } }])
+  Card({ t: (k) => k })
+})
+
+check('展开 · Windows 且浏览器未启动', () => {
+  sim.reset([true, 'vnc', { platform: 'win32', browser: { running: false } }])
+  Card({ t: (k) => k })
+})
+
 check('展开 · 被 Cloudflare 挑战（横幅）', () => {
   sim.reset([true, 'normal', { chatgpt: { challengedAt: Date.now(), hasClearance: false, loggedIn: false } }])
   Card({ t: (k) => k })

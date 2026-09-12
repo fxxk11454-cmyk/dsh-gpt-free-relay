@@ -111,11 +111,14 @@ DSH 请求 ──► 串行闸门(并发 1) ──► 真 Chromium：打字 → 
 | 系统 | 入口 | 功能 |
 |---|---|---|
 | **Linux / macOS / Android 容器** | `bash scripts/deploy.sh` | **完整** —— 机场线路 + 浏览器作答 |
-| **Windows** | `scripts\deploy.bat` | **降级** —— 只有机场线路 |
+| **Windows** | `scripts\deploy.bat` | 机场线路 + 浏览器作答（远程画面走 CDP 截图） |
 
-> Windows 上没有 Xvfb / x11vnc，做不到「有头浏览器 + 远程画面」，
-> 所以那条链路在 Windows 上不可用。这是平台限制，不是脚本偷懒 ——
-> 核心脚本会检测出来并明确告诉你。
+> **Windows 的远程画面用另一套实现**：Windows 没有 Xvfb / x11vnc，VNC 起不来，
+> 所以那里改用 **CDP 截图 + 输入注入**（Playwright 原生能力）：画面是一张定时刷新的
+> 图，点它就换算成视口坐标发回去点击，另有输入框敲字。
+>
+> **Linux / macOS 不受影响** —— 仍然走 Xvfb + x11vnc + noVNC 那条路。
+> 两套按 `status.platform` 自动分流，互不干扰。
 
 脚本会依次：**检测环境**（系统 / Node 版本 / profile / 已装内容）→ 拉取 Xray 核心
 （按平台自动选包）→ 安装浏览器环境 → 注册进 DSH profile。
