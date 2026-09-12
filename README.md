@@ -63,12 +63,15 @@ PoW 和 turnstile 都是**纯 Node 实现**（vendor 自 [pi-gpt](https://www.np
 ```
 容器
  ├─ Xvfb（虚拟屏 :99）
- ├─ Chromium（headless: false，--proxy-server 指向机场）
+ ├─ Chromium（headless: false）
  └─ x11vnc ──► WebSocket 桥 ──► 卡片里的 noVNC
 ```
 
 - **有头模式**，不是 headless —— 两者指纹不同，Cloudflare 分得出来
 - **不做本地 MITM**：浏览器直连真域名，TLS/HTTP2 指纹全是真的
+- **默认直连**，不挂任何出口代理。真浏览器直连本来就是 200、无挑战；
+  少挂一层就少一类故障（节点抖动、分流规则、DNS 泄漏）。要走出网代理时
+  把 `lib/chatgpt/browser.js` 里的 `AIRPORT_PROXY` 传进 `proxy` 即可
 - 卡片里多一个 **「有头浏览器」** 标签页，用 noVNC 把那块虚拟屏投过来，
   你直接在卡片上操作它登录
 
@@ -85,6 +88,9 @@ PoW 和 turnstile 都是**纯 Node 实现**（vendor 自 [pi-gpt](https://www.np
 bash scripts/setup-browser.sh
 ```
 
+> Xray 那边本来就是**全局**：生成的配置里 `routing.rules` 是空的，
+> 所有流量都走 `proxy` 出站，没有分流规则需要关。
+>
 > 装脚本里有两处是这个 Android 容器特有的坑，都踩过：
 > - `dpkg` 里登记了外来架构 `amd64`，导致 apt 去 ubuntu-ports 找 `binary-amd64` 全 404
 > - `x11vnc` 默认监听 IPv6 且用 SysV 共享内存，容器里两者都没有 → 启动即退出。
