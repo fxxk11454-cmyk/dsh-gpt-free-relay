@@ -2,7 +2,7 @@
 
 DSH 插件。把机场订阅解析出来，在本地起一个串行反向代理，让 DSH 的模型请求走你的线路。从 Android 版 [GPT Free 代理](https://github.com/fxxk11454-cmyk/gpt-free-relay) 移植。
 
-当前版本：`v1.1.0-beta`
+当前版本：`v2.0.0-beta`
 
 > 本项目由 AI 直接产出：代码、文档与提交信息都是 AI 写的。测试做过，但疏漏难免，用之前请自己看一遍源码。
 

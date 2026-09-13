@@ -261,7 +261,7 @@ await test('system 提示拼在最前面', () => {
   assert.equal(out, '你是助手\n\n问题')
 })
 
-await test('开思考时最前面加「请你深度思考」', () => {
+await test('开思考时最前面加思考前缀', () => {
   const out = buildPromptText([{ role: 'user', content: '问题' }], { thinking: true })
   assert.ok(out.startsWith(THINKING_PREFIX), `实际：${JSON.stringify(out)}`)
   assert.ok(out.endsWith('问题'))
@@ -287,7 +287,9 @@ await test('思考前缀在 system 之前', () => {
 await test('已有前缀时不重复添加', () => {
   const once = buildPromptText([{ role: 'user', content: '问题' }], { thinking: true })
   const twice = buildPromptText([{ role: 'user', content: once }], { thinking: true })
-  assert.equal((twice.match(/请你深度思考/g) || []).length, 1, `重复添加了：${JSON.stringify(twice)}`)
+  // 用常量拼正则，别写死字面量 —— 换前缀话术时不该连带改测试
+  const re = new RegExp(THINKING_PREFIX.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')
+  assert.equal((twice.match(re) || []).length, 1, `重复添加了：${JSON.stringify(twice)}`)
 })
 
 await test('空输入不产生只带前缀的空消息', () => {
