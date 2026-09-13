@@ -1,7 +1,7 @@
 {
   "name": "dsh-gpt-free-relay",
   "version": "1.1.0-beta",
-  "description": "DSH 插件：机场订阅 → 本地串行代理 → 让 DSH 走你的线路访问 GPT。强制并发 1，不透传工具调用。",
+  "description": "DSH 插件。解析机场订阅，在本机起一个串行反向代理，让 DSH 的模型请求走你的线路。并发固定为 1，不传工具调用。",
   "type": "module",
   "main": "lib/index.js",
   "exports": {
