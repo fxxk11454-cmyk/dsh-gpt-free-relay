@@ -678,7 +678,33 @@ await test('dispose() 之后中继不会自己复活', async () => {
   assert.equal(listening, false, `dispose() 之后 ${PORT} 又被监听了 —— 定时器没被取消`)
 })
 
-await test('dispose 是幂等的，连调两次不抛异常', async () => {
+await test('disconnect() 不关中继 —— DSH 端点要一直活着', async () => {
+  const net = await import('node:net')
+  const { createRelayState } = await import('../lib/index.js')
+  const PORT = 12135
+  const st = createRelayState({ log: () => {}, adminPort: 12136, relayPort: PORT, autoBrowser: false })
+
+  const listeningBefore = await new Promise((resolve) => {
+    const s = net.connect(PORT, '127.0.0.1')
+    s.on('connect', () => { s.destroy(); resolve(true) })
+    s.on('error', () => resolve(false))
+  })
+  assert.equal(listeningBefore, true, '初始中继应在监听')
+
+  // disconnect 之前会关中继（连带把 closed 置真，reconnect 就废了）；现在不该关
+  await st.disconnect()
+
+  const listeningAfter = await new Promise((resolve) => {
+    const s = net.connect(PORT, '127.0.0.1')
+    s.on('connect', () => { s.destroy(); resolve(true) })
+    s.on('error', () => resolve(false))
+  })
+  assert.equal(listeningAfter, true, '断开后中继应仍在监听 —— 断开只停 Xray，不动中继')
+
+  st.dispose()
+})
+
+test('dispose 是幂等的，连调两次不抛异常', async () => {
   const { createRelayState } = await import('../lib/index.js')
   const st = createRelayState({ log: () => {}, adminPort: 12133, relayPort: 12134, autoBrowser: false })
   assert.doesNotThrow(() => st.dispose())

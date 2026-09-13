@@ -109,6 +109,6 @@ curl -s 127.0.0.1:2083/config
 ## 自检
 
 ```bash
-node scripts/test-core.mjs          # 55 项核心逻辑回归
+node scripts/test-core.mjs          # 56 项核心逻辑回归
 node scripts/test-client-render.mjs # 卡片渲染回归
 ```
