@@ -77,7 +77,7 @@ DSH 请求 ──► 串行闸门(并发 1) ──► 真 Chromium：打字 → 
 
 - 用有头模式而非 headless。两者的指纹不同，Cloudflare 分得出来。
 - 不做本地 MITM，浏览器的 TLS/HTTP2 指纹都是真的。
-- 默认直连，不挂出口代理，少一层就少一类故障。要走出网代理的话，把 `lib/chatgpt/browser.js` 里的 `AIRPORT_PROXY` 传给 `proxy`。
+- 浏览器跟着机场走：连上机场时自动切到机场出口（干净 IP，ChatGPT 才不报「请关闭 VPN」），断开时回直连。自己配了 `browserProxy` 就不动它。
 - 自带登录态，不需要 accessToken，也不碰 Sentinel。
 - 手机上登录用画面右下角的「键盘」按钮唤出软键盘。
 
@@ -330,7 +330,7 @@ Android 版的 `core/ChatClient.kt` 只有 110 行，经 `127.0.0.1:<port>` 的 
 - 手机上的 VNC 画面只能看，输入要靠右下角「键盘」按钮唤出的软键盘，或者用表单面板在原生输入框里打字。
 - Xray 不支持 hysteria2 和 tuic，选中这类节点时接口会明确报错。
 - 吞吐只有 1，这是需求方明确要求的约束，不是性能缺陷。
-- 浏览器默认直连，不挂出口代理（见 `lib/chatgpt/browser.js` 顶部说明）。要挂就配 `browserProxy`。
+- 浏览器跟着机场走：连上时走机场出口，断开时回直连（见上面）。要固定走某个代理就配 `browserProxy`。
 
 ### 已知 bug 的状态
 
