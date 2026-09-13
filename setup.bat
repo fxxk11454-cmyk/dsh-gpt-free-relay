@@ -8,7 +8,7 @@ rem  这里只是**指路牌**：真正的实现在 scripts\windows\。
 rem  保留这个根目录入口，是为了让你不用记子目录。
 rem
 rem    Windows  ->  setup.bat   （就是本文件）
-rem    Unix     ->  setup.sh
+rem    Linux     ->  setup.sh
 rem
 rem  用法：
 rem    setup.bat                    完整部署

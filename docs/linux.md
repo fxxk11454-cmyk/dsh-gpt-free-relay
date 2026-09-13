@@ -1,6 +1,6 @@
-# Unix 部署（Linux / macOS / Android 容器）
+# Linux 部署（Linux / macOS / Android 容器）
 
-本页只管 Unix。Windows 看 [`windows.md`](windows.md)。
+本页只管 Linux。Windows 看 [`windows.md`](windows.md)。
 给 AI 的总入口是 [`../AGENTS.md`](../AGENTS.md)。
 
 ---
@@ -12,7 +12,7 @@ bash setup.sh
 ```
 
 这就是全部。根目录的 `setup.sh` 只是指路牌，实际实现是
-`scripts/unix/deploy.mjs`（平台无关的部分在 `scripts/_shared/`）。
+`scripts/linux/deploy.mjs`（平台无关的部分在 `scripts/_shared/`）。
 
 ```bash
 bash setup.sh --dry-run        # 先看会做什么，不改动任何东西
@@ -32,7 +32,7 @@ bash setup.sh --help
 |---|---|---|
 | 1/5 检测 | 系统、Node 版本、profile 是否存在、已装到哪一步 | — |
 | 2/5 Xray 核心 | 按架构拉 Linux/macOS 构建到 `core/xray`，`chmod +x` | `--no-core` |
-| 3/5 浏览器环境 | Linux：跑 `scripts/unix/setup-browser.sh`（660MB） | `--no-browser` |
+| 3/5 浏览器环境 | Linux：跑 `scripts/linux/setup-browser.sh`（660MB） | `--no-browser` |
 | 4/5 注册 | 写 profile 的 `dependencies` + `bundles`，建软链 | — |
 | 5/5 收尾 | 打印后续步骤 | — |
 
@@ -45,7 +45,7 @@ bash setup.sh --help
 
 ```bash
 # 1) 拉 Xray 核心（Linux 或 macOS 构建，按 uname 自动选）
-bash scripts/unix/fetch-core.sh
+bash scripts/linux/fetch-core.sh
 
 # 2) 装进某个 profile
 node scripts/_shared/register-plugin.mjs \
@@ -70,7 +70,7 @@ macOS 不是不能用「浏览器作答」，是**卡片里没有内嵌画面** 
 
 ## Linux 容器特有的两个坑
 
-都写在 `scripts/unix/setup-browser.sh` 里了，这里说明为什么：
+都写在 `scripts/linux/setup-browser.sh` 里了，这里说明为什么：
 
 1. **apt 架构。** 机器是 aarch64，但 `dpkg` 里登记了外来架构 `amd64`，
    apt 于是去 ubuntu-ports 找 `binary-amd64`，全 404。
@@ -109,6 +109,6 @@ curl -s 127.0.0.1:2083/config
 ## 自检
 
 ```bash
-node scripts/test-core.mjs          # 35 项核心逻辑回归
+node scripts/test-core.mjs          # 55 项核心逻辑回归
 node scripts/test-client-render.mjs # 卡片渲染回归
 ```

@@ -11,7 +11,7 @@
 #   ~/.dsh-browser/browsers     —— Chromium 本体（约 660MB）
 #   ~/.dsh-browser/profile      —— 浏览器用户目录（登录态存在这里）
 #
-# 用法：bash scripts/unix/setup-browser.sh
+# 用法：bash scripts/linux/setup-browser.sh
 # 想换安装位置就设 BROWSER_HOME（运行时也要设同样的值）。
 set -euo pipefail
 

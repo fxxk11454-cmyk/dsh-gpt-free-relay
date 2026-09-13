@@ -1,6 +1,6 @@
 # Windows 部署
 
-本页只管 Windows。Unix 看 [`unix.md`](unix.md)。
+本页只管 Windows。Linux 看 [`linux.md`](linux.md)。
 给 AI 的总入口是 [`../AGENTS.md`](../AGENTS.md)。
 
 ---
@@ -29,7 +29,7 @@ setup.bat --help
 
 ---
 
-## 与 Unix 的差别（就这四条）
+## 与 Linux 的差别（就这四条）
 
 | 事项 | Windows 的做法 | 为什么 |
 |---|---|---|

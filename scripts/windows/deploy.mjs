@@ -1,10 +1,10 @@
 /**
  * 一键部署 —— **Windows 专用**。
  *
- * 这个文件里没有一行 Unix 代码，也不需要看 Unix 那份。
- * 想部署到 Linux / macOS 请用 scripts/unix/deploy.mjs（或根目录的 setup.sh）。
+ * 这个文件里没有一行 Linux 代码，也不需要看 Linux 那份。
+ * 想部署到 Linux / macOS 请用 scripts/linux/deploy.mjs（或根目录的 setup.sh）。
  *
- * 本平台的形态（与 Unix 的差别就这几条）：
+ * 本平台的形态（与 Linux 的差别就这几条）：
  *   - Xray 核心：Windows 构建，可执行文件叫 xray.exe
  *   - 解压：用 PowerShell 的 Expand-Archive（Windows 自带，不依赖 unzip/python）
  *   - 链接：用目录联接 junction（符号链接要管理员权限，junction 不要）
@@ -31,6 +31,7 @@ import {
   bad,
   parseArgs,
   detect,
+  browserInstalled,
   xrayAsset,
   installCore,
   register,
@@ -51,11 +52,12 @@ if (opts.help) {
   --no-core          跳过 Xray 核心
   --no-browser       跳过浏览器环境
   --force-core       即使已存在也重新拉取核心
+  --force-browser    即使已存在也重装 Chromium
   --dry-run          只检测与打印，不做任何改动
   --help             显示这份帮助
 
 本脚本是 **Windows 专用**。
-Linux / macOS / Android 容器请用 scripts/unix/deploy.mjs。
+Linux / macOS / Android 容器请用 scripts/linux/deploy.mjs。
 `)
   process.exit(0)
 }
@@ -68,7 +70,7 @@ const fail = (m) => {
 
 if (platform() !== 'win32') {
   bad(`这是 Windows 专用脚本，但你正跑在 ${platform()} 上。`)
-  console.log('    请改用：bash scripts/unix/deploy.sh   或   node scripts/unix/deploy.mjs')
+  console.log('    请改用：bash scripts/linux/deploy.sh   或   node scripts/linux/deploy.mjs')
   process.exit(1)
 }
 
@@ -107,6 +109,12 @@ async function installBrowser() {
 
   // Windows 上不需要 Xvfb / x11vnc —— 有头浏览器直接就能跑
   ok('Windows 不需要 Xvfb / x11vnc，Playwright 原生的有头模式即可')
+
+  // 已装过就别重复下载（重装用 --force-browser）
+  if (browserInstalled(BROWSER_HOME) && !opts.forceBrowser) {
+    ok('Chromium 已存在，跳过（要强制重装用 --force-browser）')
+    return
+  }
 
   if (opts.dryRun) {
     ok('dry-run：会执行 npx playwright install chromium')
@@ -157,6 +165,7 @@ if (
     pluginDir: PLUGIN_DIR,
     opts,
     registerScript: join(SHARED, 'register-plugin.mjs'),
+    linkMode: 'junction', // Windows 用目录联接（符号链接要管理员权限）
     fail,
   })
 }

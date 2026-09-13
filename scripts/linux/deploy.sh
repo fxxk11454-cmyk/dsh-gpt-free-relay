@@ -1,18 +1,18 @@
 #!/usr/bin/env bash
 #
-# 一键部署（Unix：Linux / macOS / Android 容器）
+# 一键部署（Linux：Linux / macOS / Android 容器）
 #
 # 这个文件只是**外壳**：检测 node，然后把参数原样转给同目录的 deploy.mjs。
-# 真正的逻辑在 scripts/unix/deploy.mjs（平台无关的部分在 scripts/_shared/）。
+# 真正的逻辑在 scripts/linux/deploy.mjs（平台无关的部分在 scripts/_shared/）。
 #
 # Windows 请用仓库根目录的 setup.bat。
 #
 # 用法：
-#   bash scripts/unix/deploy.sh                    # 完整部署
-#   bash scripts/unix/deploy.sh --no-browser       # 不装浏览器环境（省 660MB）
-#   bash scripts/unix/deploy.sh --profile web      # 指定 profile
-#   bash scripts/unix/deploy.sh --dry-run          # 只看会做什么
-#   bash scripts/unix/deploy.sh --help
+#   bash scripts/linux/deploy.sh                    # 完整部署
+#   bash scripts/linux/deploy.sh --no-browser       # 不装浏览器环境（省 660MB）
+#   bash scripts/linux/deploy.sh --profile web      # 指定 profile
+#   bash scripts/linux/deploy.sh --dry-run          # 只看会做什么
+#   bash scripts/linux/deploy.sh --help
 #
 set -euo pipefail
 

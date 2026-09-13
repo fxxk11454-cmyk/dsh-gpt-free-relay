@@ -6,7 +6,7 @@ DSH 插件。把机场订阅解析出来，在本地起一个串行反向代理�
 
 > 本项目由 AI 直接产出：代码、文档与提交信息都是 AI 写的。测试做过，但疏漏难免，用之前请自己看一遍源码。
 
-**你要装它？** 看[一键部署](#一键部署)：Unix 用 `bash setup.sh`，Windows 用 `setup.bat`。
+**你要装它？** 看[一键部署](#一键部署)：Linux 用 `bash setup.sh`，Windows 用 `setup.bat`。
 **你是 AI/在改这个仓库？** 先读 [`AGENTS.md`](AGENTS.md) —— 那一页只说该做什么、去哪个文件。
 
 ---
@@ -27,7 +27,7 @@ DSH 插件。把机场订阅解析出来，在本地起一个串行反向代理�
 1. 自备 ChatGPT 账号。插件不含账号，默认那条链路完全依赖你在浏览器里登录的那个号。
 2. 网络能到 chatgpt.com。要么你自己能直连，要么有可用的代理或机场订阅。插件不提供线路。
 3. 自备 Xray 核心。走机场线路时需要，仓库不分发，见[手动安装](#手动安装)。
-4. 装浏览器环境，约 660MB：`bash setup.sh`（Unix）或 `setup.bat`（Windows）。
+4. 装浏览器环境，约 660MB：`bash setup.sh`（Linux）或 `setup.bat`（Windows）。
 5. 能跑带界面的 Linux。依赖 Xvfb、Chromium、x11vnc。纯容器或无 X 环境得自己想办法。
 6. 接受它随时失效。靠的是 ChatGPT 网页版，上游一改版就坏。
 7. 只限个人自用。别拿去多账号分发、转卖，或对外提供接口。
@@ -98,18 +98,18 @@ Xray 那边本来就是全局的：生成的配置里 `routing.rules` 是空的�
 
 ## 一键部署
 
-Windows 与 Unix 是**两套分开的脚本**，各自独立，互不牵连。
+Windows 与 Linux 是**两套分开的脚本**，各自独立，互不牵连。
 
 | 系统 | 入口 | 实现 | 说明 |
 |---|---|---|---|
-| Linux / macOS / Android 容器 | `bash setup.sh` | `scripts/unix/` | [docs/unix.md](docs/unix.md) |
+| Linux / macOS / Android 容器 | `bash setup.sh` | `scripts/linux/` | [docs/linux.md](docs/linux.md) |
 | Windows | `setup.bat` | `scripts/windows/` | [docs/windows.md](docs/windows.md) |
 
 两边只共享 `scripts/_shared/`（注册逻辑与无平台判断的公共能力）。
-拿着 Unix 脚本去 Windows 跑（或反过来）会**明确报错并告诉你去用哪个**，不会静默跑歪。
+拿着 Linux 脚本去 Windows 跑（或反过来）会**明确报错并告诉你去用哪个**，不会静默跑歪。
 
 ```bash
-# Unix 完整部署
+# Linux 完整部署
 bash setup.sh
 
 # 不装浏览器环境（只用机场线路，省 660MB）
@@ -143,7 +143,7 @@ Windows 的远程画面是另一套实现。那上面没有 Xvfb 和 x11vnc，VN
 
 ```bash
 # 1) 拉取核心（不随仓库分发）
-bash scripts/unix/fetch-core.sh          # Unix
+bash scripts/linux/fetch-core.sh          # Linux
 # Windows 用 scripts\windows\deploy.mjs，它会自动拉 Windows 构建
 
 # 2) 装进 DSH 的某个 profile
@@ -278,7 +278,7 @@ DSH ──► 127.0.0.1:2082（串行，并发 1）──► Xray ──► 机�
 ## 验证
 
 ```bash
-# 核心逻辑回归 —— 35 项
+# 核心逻辑回归 —— 55 项
 node scripts/test-core.mjs
 ```
 
@@ -295,7 +295,7 @@ node --input-type=module -e "import('./lib/subscription.js').then(m => console.l
 
 | 项 | 结果 |
 |---|---|
-| 核心逻辑回归 | 35/35 通过 |
+| 核心逻辑回归 | 55/55 通过 |
 | Clash 区块 + 缩进 + 流式解析 | 通过 |
 | base64 → URI / vmess JSON | 通过 |
 | 配置生成 → `xray -test` | `Configuration OK.` |

@@ -1,5 +1,5 @@
 /**
- * 一键部署 —— **Unix 专用**（Linux / macOS / Android 容器）。
+ * 一键部署 —— **Linux 专用**（Linux / macOS / Android 容器）。
  *
  * 这个文件里没有一行 Windows 代码，也不需要看 Windows 那份。
  * 想部署到 Windows 请用 scripts/windows/deploy.mjs（或根目录的 setup.bat）。
@@ -11,9 +11,9 @@
  *   - 远程画面：noVNC（浏览器里的虚拟屏）
  *
  * 用法：
- *   bash scripts/unix/deploy.sh              # 完整部署
- *   bash scripts/unix/deploy.sh --no-browser # 只用机场线路，省 660MB
- *   bash scripts/unix/deploy.sh --dry-run    # 只看会做什么
+ *   bash scripts/linux/deploy.sh              # 完整部署
+ *   bash scripts/linux/deploy.sh --no-browser # 只用机场线路，省 660MB
+ *   bash scripts/linux/deploy.sh --dry-run    # 只看会做什么
  */
 import { spawnSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
@@ -29,6 +29,7 @@ import {
   bad,
   parseArgs,
   detect,
+  browserInstalled,
   xrayAsset,
   installCore,
   register,
@@ -44,16 +45,17 @@ const opts = parseArgs()
 
 if (opts.help) {
   console.log(`
-用法: node scripts/unix/deploy.mjs [选项]
+用法: node scripts/linux/deploy.mjs [选项]
 
   --profile <名字>   指定 DSH profile（默认 web）
   --no-core          跳过 Xray 核心
   --no-browser       跳过浏览器环境（省约 660MB）
   --force-core       即使已存在也重新拉取核心
+  --force-browser    即使已存在也重装浏览器环境（默认会跳过，省 660MB）
   --dry-run          只检测与打印，不做任何改动
   --help             显示这份帮助
 
-本脚本是 **Unix 专用**（Linux / macOS / Android 容器）。
+本脚本是 **Linux 专用**（Linux / macOS / Android 容器）。
 Windows 请用 scripts\\windows\\deploy.mjs。
 `)
   process.exit(0)
@@ -69,7 +71,7 @@ const IS_LINUX = platform() === 'linux'
 const IS_MAC = platform() === 'darwin'
 
 if (platform() === 'win32') {
-  bad('这是 Unix 专用脚本，但你正跑在 Windows 上。')
+  bad('这是 Linux 专用脚本，但你正跑在 Windows 上。')
   console.log('    请改用：scripts\\windows\\deploy.mjs   或   setup.bat')
   process.exit(1)
 }
@@ -81,7 +83,7 @@ console.log()
 say(`GPT Free 中转 · 一键部署（${IS_MAC ? 'macOS' : 'Linux'}）`)
 console.log()
 
-// ── 解压：Unix 上优先 unzip，再退到 python3 ─────────────────────────────────
+// ── 解压：Linux 上优先 unzip，再退到 python3 ─────────────────────────────────
 function unzip(zipPath, outDir) {
   let r = spawnSync('unzip', ['-oq', zipPath, '-d', outDir], { stdio: 'ignore' })
   if (r.status === 0) return true
@@ -101,6 +103,19 @@ async function installBrowser() {
     return
   }
   say('3/5 安装浏览器环境')
+
+  /**
+   * 已经装过就别再装一遍。
+   *
+   * 这一步要 apt-get + npm + 下 Chromium，重跑一次是几百 MB 和好几分钟。
+   * detect() 本来就算了 `已装情况：浏览器=有`，但这里原先没用它 ——
+   * 于是"重跑一遍安装脚本"变成了"重下一遍 660MB"。现在跳过，
+   * 要强制重装用 --force-browser。
+   */
+  if (browserInstalled(BROWSER_HOME) && !opts.forceBrowser) {
+    ok('浏览器环境已存在，跳过（要强制重装用 --force-browser）')
+    return
+  }
 
   if (!IS_LINUX) {
     // macOS：原生有头浏览器可用，但没有 Xvfb/x11vnc 那套，所以没有内嵌画面
@@ -155,6 +170,7 @@ if (
     pluginDir: PLUGIN_DIR,
     opts,
     registerScript: join(SHARED, 'register-plugin.mjs'),
+    linkMode: 'dir', // Linux 用符号链接
     fail,
   })
 }

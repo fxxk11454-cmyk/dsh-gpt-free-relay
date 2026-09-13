@@ -7,17 +7,17 @@
 
 ## 第一步：判断平台，然后只看那一份
 
-这个插件的 **Windows** 和 **Unix** 两条路径是**分开的**。不要试图写一套"两边都能跑"的代码。
+这个插件的 **Windows** 和 **Linux** 两条路径是**分开的**。不要试图写一套"两边都能跑"的代码。
 
 | 你在哪 | 部署用 | 实现读 | 后续步骤读 |
 |---|---|---|---|
 | **Windows** | `setup.bat` → `scripts/windows/deploy.mjs` | `scripts/windows/` | `docs/windows.md` |
-| **Linux / macOS / Android 容器** | `bash setup.sh` → `scripts/unix/deploy.mjs` | `scripts/unix/` | `docs/unix.md` |
+| **Linux / macOS / Android 容器** | `bash setup.sh` → `scripts/linux/deploy.mjs` | `scripts/linux/` | `docs/linux.md` |
 
 先执行判断：
 
 ```bash
-node -e "console.log(process.platform)"   # win32 → Windows；linux/darwin → Unix
+node -e "console.log(process.platform)"   # win32 → Windows；linux/darwin → Linux
 ```
 
 **两边的唯一共享代码是 `scripts/_shared/`**，里面**不允许出现平台判断**。
@@ -25,12 +25,12 @@ node -e "console.log(process.platform)"   # win32 → Windows；linux/darwin →
 
 ### 两边的差异（记这几条就够，细节在各自文档里）
 
-| 事项 | Unix | Windows |
+| 事项 | Linux | Windows |
 |---|---|---|
 | Xray 可执行文件 | `core/xray`（要 `chmod +x`） | `core/xray.exe` |
 | 解压 | `unzip`，失败退 `python3` | PowerShell `Expand-Archive` |
 | 链接 node_modules | 符号链接 `'dir'` | 目录联接 `'junction'`（免管理员权限） |
-| 浏览器环境 | Linux 要 Xvfb+x11vnc，`scripts/unix/setup-browser.sh`（660MB） | `npx playwright install chromium`，**不要** Xvfb |
+| 浏览器环境 | Linux 要 Xvfb+x11vnc，`scripts/linux/setup-browser.sh`（660MB） | `npx playwright install chromium`，**不要** Xvfb |
 | 远程画面 | noVNC（`/novnc/index.html`） | CDP 截图（`/browser/frame`） |
 | 运行时判据 | `status.platform !== 'win32'` | `status.platform === 'win32'` |
 
@@ -46,7 +46,7 @@ lib/relay.js            串行闸门 + 工具剥离 + 响应过滤   ← 硬约�
 lib/xray.js             核心子进程与配置生成
 lib/chatgpt/            浏览器作答链路（driver/browser/webchat/session/bridge）
 lib/client.js           浏览器端卡片（在 DSH 的「插件配置」页里渲染）
-lib/vnc.js              远程画面（Unix 专用）
+lib/vnc.js              远程画面（Linux 专用）
 scripts/                部署脚本（见上面那张表）
 core/                   Xray 二进制，不进仓库
 ```
@@ -69,7 +69,8 @@ core/                   Xray 二进制，不进仓库
 ## 第三步：改完必须验证
 
 ```bash
-# 核心逻辑回归（35 项：工具剥离 / 串行闸门 / 响应过滤 / 订阅解析 / 配置生成）
+# 核心逻辑回归（55 项：工具剥离 / 串行闸门 / 响应过滤 / 订阅解析 /
+#   配置生成 / 仓库结构 / provider 注册契约 / 生命周期）
 node scripts/test-core.mjs
 
 # 客户端卡片渲染回归（卡片是展开时才渲染的，里面有未定义变量会整张消失且不报错）
@@ -124,7 +125,7 @@ curl -s 127.0.0.1:2083/config     # 实际生成的 Xray 配置 + 错误日志
 ## 给人看的文档在哪
 
 - `README.md` —— 使用条件、免责声明、功能说明、端点清单
-- `docs/unix.md` —— Unix 部署与排错
+- `docs/linux.md` —— Linux 部署与排错
 - `docs/windows.md` —— Windows 部署与排错
 
 本页（`AGENTS.md`）只管"AI 该怎么做"。

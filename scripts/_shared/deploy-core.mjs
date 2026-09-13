@@ -2,7 +2,7 @@
  * 部署用的公共能力 —— **与平台无关**的那部分。
  *
  * 这个文件里不允许出现任何 `platform() === 'win32'` 之类的判断。
- * 所有平台差异由调用方（scripts/unix/*.mjs 与 scripts/windows/*.mjs）
+ * 所有平台差异由调用方（scripts/linux/*.mjs 与 scripts/windows/*.mjs）
  * 通过参数传进来：
  *
  *   - xrayAsset(platform, arch) → 资源包文件名
@@ -14,7 +14,7 @@
  */
 
 import { spawnSync } from 'node:child_process'
-import { existsSync, mkdirSync, readFileSync, writeFileSync, rmSync, symlinkSync, lstatSync, readdirSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, writeFileSync, rmSync, symlinkSync, lstatSync, readdirSync, realpathSync } from 'node:fs'
 import { homedir, tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 
@@ -47,6 +47,7 @@ export function parseArgs(argv = process.argv.slice(2)) {
     doCore: !has('--no-core'),
     doBrowser: !has('--no-browser'),
     forceCore: has('--force-core'),
+    forceBrowser: has('--force-browser'),
     dryRun: has('--dry-run'),
     help: has('--help') || has('-h'),
   }
@@ -237,7 +238,7 @@ export async function installCore({ opts, coreDir, coreBin, asset, unzip, exeNam
  * 在 profile 的 node_modules 里建一个指向插件目录的链接。
  *
  * @param {'dir'|'junction'} linkMode
- *        Unix 用 'dir'（符号链接）；Windows 用 'junction'（目录联接，
+ *        Linux 用 'dir'（符号链接）；Windows 用 'junction'（目录联接，
  *        不需要管理员权限，而符号链接需要）。
  */
 export function linkIntoNodeModules({ pluginDir, opts, linkMode }) {
@@ -255,8 +256,17 @@ export function linkIntoNodeModules({ pluginDir, opts, linkMode }) {
   }
 
   if (exists) {
+    /**
+     * 用 realpathSync 而不是 path.resolve。
+     *
+     * path.resolve 只做字符串拼接，**不跟随符号链接** —— 拿它去比对链接目标
+     * 永远不相等，于是每次安装都说"指向不对，正在重设"，白删白建一遍。
+     * 实测：
+     *   path.resolve(link)     → <profile>/node_modules/dsh-gpt-free-relay
+     *   fs.realpathSync(link)  → /root/rp/dsh-gpt-free-relay   ← 这个才是目标
+     */
     try {
-      if (resolve(link) === pluginDir) {
+      if (realpathSync(link) === realpathSync(pluginDir)) {
         ok('node_modules 里的链接已正确')
         return
       }
@@ -282,7 +292,15 @@ export function linkIntoNodeModules({ pluginDir, opts, linkMode }) {
   }
 }
 
-export function register({ pluginDir, opts, registerScript, fail }) {
+/**
+ * 注册进 profile，然后建链接。
+ *
+ * @param {'dir'|'junction'} linkMode
+ *        **必须由调用方传**，不能在这里判断 process.platform ——
+ *        本文件禁止出现平台判断（见文件顶部说明与 AGENTS.md）。
+ *        Linux 传 'dir'（符号链接），Windows 传 'junction'（目录联接）。
+ */
+export function register({ pluginDir, opts, registerScript, linkMode, fail }) {
   const { profileDir } = paths(pluginDir, opts.profile)
   say('4/5 把插件注册进 profile')
   if (opts.dryRun) {
@@ -294,7 +312,7 @@ export function register({ pluginDir, opts, registerScript, fail }) {
     fail('注册失败')
     return
   }
-  linkIntoNodeModules({ pluginDir, opts, linkMode: process.platform === 'win32' ? 'junction' : 'dir' })
+  linkIntoNodeModules({ pluginDir, opts, linkMode })
 }
 
 // ── 收尾 ────────────────────────────────────────────────────────────────────
