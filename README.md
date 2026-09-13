@@ -278,7 +278,7 @@ DSH ──► 127.0.0.1:2082（串行，并发 1）──► Xray ──► 机�
 ## 验证
 
 ```bash
-# 核心逻辑回归 —— 56 项
+# 核心逻辑回归 —— 57 项
 node scripts/test-core.mjs
 ```
 
@@ -295,7 +295,7 @@ node --input-type=module -e "import('./lib/subscription.js').then(m => console.l
 
 | 项 | 结果 |
 |---|---|
-| 核心逻辑回归 | 56/56 通过 |
+| 核心逻辑回归 | 57/57 通过 |
 | Clash 区块 + 缩进 + 流式解析 | 通过 |
 | base64 → URI / vmess JSON | 通过 |
 | 配置生成 → `xray -test` | `Configuration OK.` |

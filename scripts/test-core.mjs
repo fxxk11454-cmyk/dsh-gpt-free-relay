@@ -704,7 +704,25 @@ await test('disconnect() 不关中继 —— DSH 端点要一直活着', async (
   st.dispose()
 })
 
-test('dispose 是幂等的，连调两次不抛异常', async () => {
+await test('GET /disconnect 不再 404（断开要收 GET 和 POST）', async () => {
+  const { createRelayState } = await import('../lib/index.js')
+  const st = createRelayState({ log: () => {}, adminPort: 12152, relayPort: 12153, autoBrowser: false })
+  st.startAdmin()
+  await new Promise((r) => setTimeout(r, 250))
+  try {
+    // 早先只认 POST，GET 落到 404「未知路由」；断开幂等且不带体，收 GET 无副作用
+    const r = await fetch('http://127.0.0.1:12152/disconnect', { method: 'GET' })
+    assert.equal(r.status, 200, `GET /disconnect 应返回 200，实际 ${r.status}`)
+    const j = await r.json()
+    assert.equal(j.ok, true, '返回体要有 ok:true')
+    // 顺带确认断开没关中继
+    assert.equal(st.status().relay.listening, true, '断开后中继仍在监听')
+  } finally {
+    st.dispose()
+  }
+})
+
+await test('dispose 是幂等的，连调两次不抛异常', async () => {
   const { createRelayState } = await import('../lib/index.js')
   const st = createRelayState({ log: () => {}, adminPort: 12133, relayPort: 12134, autoBrowser: false })
   assert.doesNotThrow(() => st.dispose())
